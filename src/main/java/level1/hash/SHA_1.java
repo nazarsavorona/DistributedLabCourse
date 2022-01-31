@@ -10,38 +10,42 @@ public class SHA_1 {
     private final int WORD_SIZE = 32;
 
     private String GetSHA_1Hash(String message) {
-        int h0 = 0x67452301;
-        int h1 = 0xEFCDAB89;
-        int h2 = 0x98BADCFE;
-        int h3 = 0x10325476;
-        int h4 = 0xC3D2E1F0;
+        long h0 = 0x67452301L;
+        long h1 = 0xEFCDAB89L;
+        long h2 = 0x98BADCFEL;
+        long h3 = 0x10325476L;
+        long h4 = 0xC3D2E1F0L;
         int messageLengthInBits = message.length() * 8;
 
         String padded = padMessage(message, messageLengthInBits);
-        List<List<Integer>> words = getMessageWords(padded);
+        List<List<Long>> words = getMessageWords(padded);
 
         for (int i = 0; i < words.size(); i++) {
-            List<Integer> schedule = new ArrayList<>(80);
+            List<Long> schedule = new ArrayList<>(80);
             for (int j = 0; j < 16; j++) {
                 schedule.add(words.get(i).get(j));
             }
             for (int j = 16; j < 80; j++) {
-                schedule.add(Integer.rotateLeft(schedule.get(j - 3) ^ schedule.get(j - 8) ^ schedule.get(j - 14) ^ schedule.get(j - 16), 1));
+                schedule.add(Long.rotateLeft(schedule.get(j - 3) ^ schedule.get(j - 8) ^ schedule.get(j - 14) ^ schedule.get(j - 16), 1));
             }
 
-            int a = h0;
-            int b = h1;
-            int c = h2;
-            int d = h3;
-            int e = h4;
+            long a = h0;
+            long b = h1;
+            long c = h2;
+            long d = h3;
+            long e = h4;
+            long modulo = (long) pow(2, 32);
 
-            int rotated = Integer.rotateLeft(h0, 5);
+            long rotated = Long.rotateLeft(b, 30);
+            long rotlated = ROTL(b, 30, 32) % modulo;
+
 
             for (int t = 0; t < 80; t++) {
-                int T = (int)((Integer.rotateLeft(a, 5) + f_t(b, c, d, t) + e + K_t(t) + schedule.get(t)) % pow(2, 32));
+                long T = (ROTL(a, 5, 32) % modulo + f_t(b, c, d, t) + e + K_t(t) + schedule.get(t)) % modulo;
                 e = d;
                 d = c;
-                c = Integer.rotateLeft(b, 30);
+//                c = Long.rotateLeft(b, 30);
+                c = ROTL(b, 30, 32) % modulo;
                 b = a;
                 a = T;
             }
@@ -74,24 +78,24 @@ public class SHA_1 {
                 a = temp;
             }*/
 
-            h0 = (int)((h0 + a) % pow(2, 32));
-            h1 = (int)((h1 + b) % pow(2, 32));
-            h2 = (int)((h2 + c) % pow(2, 32));
-            h3 = (int)((h3 + d) % pow(2, 32));
-            h4 = (int)((h4 + e) % pow(2, 32));
+            h0 = (h0 + a) % modulo;
+            h1 = (h1 + b) % modulo;
+            h2 = (h2 + c) % modulo;
+            h3 = (h3 + d) % modulo;
+            h4 = (h4 + e) % modulo;
         }
 
         return Long.toHexString(h0) + Long.toHexString(h1) + Long.toHexString(h2) + Long.toHexString(h3) + Long.toHexString(h4);
     }
 
-    private List<List<Integer>> getMessageWords(String padded) {
-        List<List<Integer>> words = new ArrayList<>(padded.length() / BLOCK_SIZE);
+    private List<List<Long>> getMessageWords(String padded) {
+        List<List<Long>> words = new ArrayList<>(padded.length() / BLOCK_SIZE);
 
         for (int i = 0; i < padded.length() / BLOCK_SIZE; i++) {
             words.add(new ArrayList<>(16));
             for (int j = 0; j < 16; j++) {
                 int shift = i * BLOCK_SIZE + j * WORD_SIZE;
-                words.get(i).add(Integer.parseInt(Integer.toHexString(Integer.parseInt(padded.substring(shift, shift + WORD_SIZE), 2)), 16));
+                words.get(i).add(Long.parseLong(Long.toHexString(Long.parseLong(padded.substring(shift, shift + WORD_SIZE), 2)), 16));
             }
         }
 
@@ -102,7 +106,7 @@ public class SHA_1 {
         StringBuilder padded = new StringBuilder();
 
         for (char c : message.toCharArray()) {
-            padded.append(String.format("%08d", Integer.parseInt(Integer.toBinaryString(c))));
+            padded.append(String.format("%08d", Long.parseLong(Long.toBinaryString(c))));
         }
 
         padded.append('1');
@@ -116,18 +120,19 @@ public class SHA_1 {
             padded.append('0');
         }
 
-        padded.append(String.format("%064d", Integer.parseInt(Integer.toBinaryString(messageLengthInBits))));
+        padded.append(String.format("%064d", Long.parseLong(Long.toBinaryString(messageLengthInBits))));
 
         return padded.toString();
     }
 
     private Long ROTL(long x, int n, int w) {
-        return (x << n) | (x >> (w - n));
+        long modulo = (long) pow(2, 32);
+        return (x << n) | (x >> w - n);
     }
 
-    private Integer f_t(int x, int y, int z, int t) {
+    private Long f_t(long x, long y, long z, int t) {
         if (0 <= t && t <= 19) {
-            return (x & y) ^ (x & z);
+            return (x & y) ^ (~x & z);
         }
         if (20 <= t && t <= 39) {
             return x ^ y ^ z;
@@ -139,15 +144,15 @@ public class SHA_1 {
         }
     }
 
-    private Integer K_t(int t) {
+    private Long K_t(int t) {
         if (0 <= t && t <= 19) {
-            return 0x5a827999;
+            return 0x5a827999L;
         } else if (20 <= t && t <= 39) {
-            return 0x6ed9eba1;
+            return 0x6ed9eba1L;
         } else if (40 <= t && t <= 59) {
-            return 0x8f1bbcdc;
+            return 0x8f1bbcdcL;
         } else {
-            return 0xca62c1d6;
+            return 0xca62c1d6L;
         }
     }
 
