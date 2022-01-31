@@ -26,7 +26,7 @@ public class SHA_1 {
                 schedule.add(words.get(i).get(j));
             }
             for (int j = 16; j < 80; j++) {
-                schedule.add(Long.rotateLeft(schedule.get(j - 3) ^ schedule.get(j - 8) ^ schedule.get(j - 14) ^ schedule.get(j - 16), 1));
+                schedule.add(ROTL(schedule.get(j - 3) ^ schedule.get(j - 8) ^ schedule.get(j - 14) ^ schedule.get(j - 16), 1, 32));
             }
 
             long a = h0;
@@ -36,47 +36,15 @@ public class SHA_1 {
             long e = h4;
             long modulo = (long) pow(2, 32);
 
-            long rotated = Long.rotateLeft(b, 30);
-            long rotlated = ROTL(b, 30, 32) % modulo;
-
-
             for (int t = 0; t < 80; t++) {
-                long T = (ROTL(a, 5, 32) % modulo + f_t(b, c, d, t) + e + K_t(t) + schedule.get(t)) % modulo;
+                long T = (ROTL(a, 5, 32) + f_t(b, c, d, t) + e + K_t(t) + schedule.get(t)) % modulo;
+
                 e = d;
                 d = c;
-//                c = Long.rotateLeft(b, 30);
                 c = ROTL(b, 30, 32) % modulo;
                 b = a;
                 a = T;
             }
-
-            /*for (int t = 0; t < 80; t++) {
-                long f = 0;
-                long k = 0;
-                if(t < 20){
-                    f = (b & c) | ((~b)&d);
-                    k = 0x5A827999;
-                }
-                else if(t < 40){
-                    f = b ^ c ^ d;
-                    k = 0x6ED9EBA1;
-                }
-                else if(t < 60){
-                    f = (b & c) | (b & d) | (c & d);
-                    k = 0x8F1BBCDC;
-                }
-                else if(t < 80){
-                    f = b ^ c ^ d;
-                    k = 0xCA62C1D6;
-                }
-
-                long temp = (Long.rotateLeft(a, 5) + f + e + k + schedule.get(t)) % round(pow(2, 32));
-                e = d;
-                d = c;
-                c = Long.rotateLeft(b, 30);
-                b = a;
-                a = temp;
-            }*/
 
             h0 = (h0 + a) % modulo;
             h1 = (h1 + b) % modulo;
@@ -127,7 +95,7 @@ public class SHA_1 {
 
     private Long ROTL(long x, int n, int w) {
         long modulo = (long) pow(2, 32);
-        return (x << n) | (x >> w - n);
+        return ((x << n) | (x >> (w - n))) % modulo;
     }
 
     private Long f_t(long x, long y, long z, int t) {
@@ -164,55 +132,3 @@ public class SHA_1 {
 
     }
 }
-
-/*
-function GetSHA1Hash (message)
-    begin
-        h0 = 0x67452301
-        h1 = 0xEFCDAB89
-        h2 = 0x98BADCFE
-        h3 = 0x10325476
-        h4 = 0xC3D2E1F0             //variables initialization
-        ml = message length in bits
-
-        break message into 512-bit chunks (after message processing)
-        for each chunk
-            break chunk into sixteen 32-bit big-endian words w[i], 0 ≤ i ≤ 15
-            for i from 16 to 79
-        w[i] = (w[i-3] xor w[i-8] xor w[i-14] xor w[i-16]) leftrot 5
-
-        a = h0
-            b = h1
-            c = h2
-            d = h3
-            e = h4
-
-            for i from 0 to 79 {
-                if 0 ≤ i ≤ 19 then
-                    f = (b and c) or ((not b) and d)
-                    k = 0x5A827999
-                else if 20 ≤ i ≤ 39
-                    f = b xor c xor d
-                    k = 0x6ED9EBA1
-                else if 40 ≤ i ≤ 59
-                    f = (b and c) or (b and d) or (c and d)
-                    k = 0x8F1BBCDC
-                else if 60 ≤ i ≤ 79
-                    f = b xor c xor d
-                    k = 0xCA62C1D6
-
-                temp = (a leftrot 5) + f + e + k + w[i]
-                e = d
-        d = c
-                c = b leftrotate 30
-                b = a
-        a = temp
-        }
-            h0 = h0 + a
-            h1 = h1 + b
-            h2 = h2 + c
-            h3 = h3 + d
-            h4 = h4 + e
-
-hash = (h0 lshift 128) or (h1 lshift 96) or (h2 lshift 64) or (h3 lshift 32) or h4     // concat
- */
